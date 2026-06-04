@@ -89,7 +89,7 @@ export default class WebSocketHandler {
     }
 
     if (
-      this.broadcastToRoom(data.sheetId, JSON.stringify(data.update), ws) ===
+      this.broadcastToRoom(data.sheetId, JSON.stringify({ type: "data", data: data.update }), ws) ===
       false
     ) {
       this.sendError(ws, "Unable to update");

@@ -11,6 +11,6 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "npx tsx watch server.ts"
+    "dev": "npx tsx watch src/server.ts"
   }
 }
