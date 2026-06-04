@@ -7,6 +7,7 @@ function App() {
 
   const [connected, setConnected] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
 
   const websocket_url = "ws://localhost:8080";
 
@@ -71,7 +72,14 @@ function App() {
   };
 
   const getSheet = (sheetId: string) => {
+    if (currentSheetId && currentSheetId !== sheetId) {
+      ws?.send(
+        JSON.stringify({ type: "leave", data: { sheetId: currentSheetId } }),
+      );
+    }
+
     ws?.send(JSON.stringify({ type: "join", data: { sheetId } }));
+    setCurrentSheetId(sheetId);
   };
 
   return (
