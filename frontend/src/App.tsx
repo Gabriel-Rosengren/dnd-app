@@ -62,12 +62,14 @@ function App() {
   const handleSubmit = (e: any) => {
     e.preventDefault();
 
-    const value: number = e.target.hitpoints.value;
-    const newChar = { ...character };
+    const value: number = Number(e.target.hitpoints.value);
+    const newChar = {
+      ...character!,
+      hitPoints: { ...character!.hitPoints, current: value },
+    };
 
-    (newChar.hitPoints as any).current = value;
+    setCharacter(newChar);
     e.target.hitpoints.value = "";
-    e.target.hitpoints.placeholder = value;
     sendUpdate(newChar);
   };
 
