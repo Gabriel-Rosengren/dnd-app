@@ -10,8 +10,22 @@ I wanted a better way to run character sheets in my own campaigns — something 
 - Players and DMs connect to a room identified by sheet ID; any update is broadcast to everyone else in that room
 - Ping/pong heartbeat cleans up dead connections every 60s
 - A fully typed `Character` model covers stats, skills, spells, equipment, notes, and class resources
+- **React** frontend built with Vite for the character sheet UI
 
 ## Getting started
+
+### Run both server and client (recommended)
+
+```sh
+npm install
+npm run dev
+```
+
+The server runs on `ws://localhost:8080` and the frontend on `http://localhost:5173`.
+
+### Run individually
+
+**Server:**
 
 ```sh
 cd server
@@ -19,7 +33,13 @@ npm install
 npm run dev
 ```
 
-Connects on `ws://localhost:8080`. No client yet — use a WebSocket testing tool or build one against the message protocol.
+**Client:**
+
+```sh
+cd frontend
+npm install
+npm run dev
+```
 
 ## Message protocol
 
