@@ -1,6 +1,11 @@
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import { JoinMessage, LeaveMessage, UpdateMessage, MessageData } from "./types.js";
+import {
+  JoinMessage,
+  LeaveMessage,
+  UpdateMessage,
+  MessageData,
+} from "./types.js";
 import { db } from "./db.js";
 
 type AugmentedSocket = WebSocket & { isAlive?: boolean };
@@ -46,10 +51,20 @@ export default class WebSocketHandler {
       }
 
       switch (msg.type) {
-        case "join":   this.handleJoin(ws, msg.data);   break;
-        case "leave":  this.handleLeave(ws, msg.data);  break;
-        case "update": this.handleUpdate(ws, msg.data); break;
-        default:       this.sendError(ws, `Unknown message type: ${(msg as MessageData).type}`);
+        case "join":
+          this.handleJoin(ws, msg.data);
+          break;
+        case "leave":
+          this.handleLeave(ws, msg.data);
+          break;
+        case "update":
+          this.handleUpdate(ws, msg.data);
+          break;
+        default:
+          this.sendError(
+            ws,
+            `Unknown message type: ${(msg as MessageData).type}`,
+          );
       }
     });
   }
@@ -73,7 +88,10 @@ export default class WebSocketHandler {
       return;
     }
 
-    if (this.broadcastToRoom(data.sheetId, JSON.stringify(data.update), ws) === false) {
+    if (
+      this.broadcastToRoom(data.sheetId, JSON.stringify(data.update), ws) ===
+      false
+    ) {
       this.sendError(ws, "Unable to update");
       return;
     }
