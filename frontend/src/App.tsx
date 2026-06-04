@@ -49,7 +49,7 @@ function App() {
     ws?.send(
       JSON.stringify({
         type: "update",
-        data: { sheetId: character?.id, data },
+        data: { sheetId: character?.id, update: data },
       }),
     );
   };
