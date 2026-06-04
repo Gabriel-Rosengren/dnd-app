@@ -1,21 +1,17 @@
 export class db {
-  private characters: Array<Object>; // Object[];
+  private characters: Array<Object>;
 
   constructor() {
     this.characters = [
       {
         id: "1",
         name: "Tink Fiddleton",
-        hitPoints: {
-          current: 20,
-        },
+        hitPoints: { current: 20 },
       },
       {
         id: "2",
         name: "Formik 'Spores' Doeger Rowynn Piddock Yddae",
-        hitPoints: {
-          current: 20,
-        },
+        hitPoints: { current: 20 },
       },
     ];
   }
@@ -27,9 +23,9 @@ export class db {
     this.characters[index] = char;
     return true;
   }
+
   public get(id: string) {
     const index = this.findIndex(id);
-
     if (index === -1) return false;
 
     return this.characters[index];
@@ -37,7 +33,6 @@ export class db {
 
   public deleted(id: string) {
     const index = this.findIndex(id);
-
     if (index === -1) return false;
 
     this.characters.splice(index, 1);
@@ -46,24 +41,14 @@ export class db {
 
   public update(id: string, char: Object) {
     const index = this.findIndex(id);
-
-    console.log("pre", this.characters[index]);
     if (index === -1) return false;
 
     this.characters[index] = char;
-    console.log("post", this.characters[index]);
-    return;
+    return true;
   }
 
   private findIndex(id: string): number {
-    let index;
-    this.characters.filter((char: any, i) => {
-      if (char.id === id) {
-        index = i;
-      }
-    });
-
-    if (index === undefined) return -1;
+    const index = this.characters.findIndex((char: any) => char.id === id);
     return index;
   }
 }

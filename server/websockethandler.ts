@@ -1,6 +1,6 @@
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import { Character, MessageData } from "./types.js";
+import { JoinMessage, LeaveMessage, UpdateMessage, MessageData } from "./types.js";
 import { db } from "./db.js";
 
 type AugmentedSocket = WebSocket & { isAlive?: boolean };
@@ -26,7 +26,7 @@ export default class WebSocketHandler {
 
   private setupListeners(ws: AugmentedSocket) {
     ws.on("error", (error: Error) => console.error("Error:", error));
-    // Make sure messages can't be sent to "nobody"
+
     ws.on("close", () => {
       this.rooms.forEach((sockets) => sockets.delete(ws));
     });
@@ -36,7 +36,7 @@ export default class WebSocketHandler {
     });
 
     ws.on("message", (raw: Buffer) => {
-      let msg: MessageData; // re-write type to ensure full type safety
+      let msg: MessageData;
 
       try {
         msg = JSON.parse(raw.toString());
@@ -45,73 +45,40 @@ export default class WebSocketHandler {
         return;
       }
 
-      if (typeof msg.type !== "string") {
-        this.sendError(ws, "Missing message type");
-        return;
-      }
-
-      // Break out into functions
       switch (msg.type) {
-        case "join": {
-          console.log(msg);
-          const sheetId: string = (msg.data as any).sheetId;
-          if (typeof sheetId !== "string") {
-            this.sendError(ws, "Invalid sheetId 1");
-            break;
-          }
-          const foundSheet = this.db.get(sheetId);
-          if (!foundSheet) {
-            this.sendError(ws, "Invalid SheetId");
-          }
-
-          if (!this.rooms.has(sheetId)) {
-            this.rooms.set(sheetId, new Set());
-          }
-
-          this.rooms.get(sheetId)!.add(ws);
-          ws.send(JSON.stringify({ type: "data", data: foundSheet }));
-          break;
-        }
-
-        case "leave": {
-          const { sheetId } = msg.data as { sheetId: string };
-          if (typeof sheetId !== "string") {
-            this.sendError(ws, "Invalid sheetId");
-            break;
-          }
-          this.rooms.get(sheetId)?.delete(ws);
-          break;
-        }
-
-        case "update": {
-          const { sheetId, data } = msg.data as {
-            sheetId: string;
-            data: Object; //Character;
-          };
-
-          if (typeof sheetId !== "string") {
-            this.sendError(ws, "Invalid sheetId");
-            break;
-          }
-
-          if (this.db.update(sheetId, data) === false) {
-            this.sendError(ws, "Unable to update");
-            break;
-          }
-
-          if (
-            this.broadcastToRoom(sheetId, JSON.stringify(data), ws) === false
-          ) {
-            this.sendError(ws, "Unable to update");
-          }
-          ws.send(JSON.stringify({ type: "info", data: { message: "Ok" } }));
-          break;
-        }
-
-        default:
-          this.sendError(ws, `Unknown message type: ${msg.type}`);
+        case "join":   this.handleJoin(ws, msg.data);   break;
+        case "leave":  this.handleLeave(ws, msg.data);  break;
+        case "update": this.handleUpdate(ws, msg.data); break;
+        default:       this.sendError(ws, `Unknown message type: ${(msg as MessageData).type}`);
       }
     });
+  }
+
+  private handleJoin(ws: AugmentedSocket, data: JoinMessage["data"]) {
+    if (!this.rooms.has(data.sheetId)) {
+      this.rooms.set(data.sheetId, new Set());
+    }
+
+    this.rooms.get(data.sheetId)!.add(ws);
+    ws.send(JSON.stringify({ type: "data", data: this.db.get(data.sheetId) }));
+  }
+
+  private handleLeave(ws: AugmentedSocket, data: LeaveMessage["data"]) {
+    this.rooms.get(data.sheetId)?.delete(ws);
+  }
+
+  private handleUpdate(ws: AugmentedSocket, data: UpdateMessage["data"]) {
+    if (this.db.update(data.sheetId, data.update as Object) === false) {
+      this.sendError(ws, "Unable to update");
+      return;
+    }
+
+    if (this.broadcastToRoom(data.sheetId, JSON.stringify(data.update), ws) === false) {
+      this.sendError(ws, "Unable to update");
+      return;
+    }
+
+    ws.send(JSON.stringify({ type: "info", data: { message: "Ok" } }));
   }
 
   start() {
@@ -120,13 +87,12 @@ export default class WebSocketHandler {
     });
 
     this.wss.on("close", () => {
-      console.log("connection closed");
+      console.log("Websocket Server Closed");
     });
 
     this.wss.on("connection", (ws: AugmentedSocket) => {
       ws.isAlive = true;
       this.setupListeners(ws);
-      console.log("connected");
     });
 
     this.interval = setInterval(() => {
@@ -137,10 +103,6 @@ export default class WebSocketHandler {
         ws.ping();
       });
     }, 60000);
-
-    setInterval(() => {
-      console.log(this.wss.clients.size);
-    }, 10000);
 
     this.server.listen(this.port, () => {
       console.log(`Websocket Server is listening on port ${this.port}`);

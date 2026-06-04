@@ -79,9 +79,7 @@ export type Character = {
   savingThrows: Record<Ability, boolean>;
 
   skills: Record<SkillName, number>;
-  skillProficiencies: Partial<
-    Record<SkillName, "proficient" | "expertise" | "none">
-  >;
+  skillProficiencies: Partial<Record<SkillName, "proficient" | "expertise" | "none">>;
   passivePerception: number;
 
   hitPoints: {
@@ -143,9 +141,8 @@ export type Character = {
   notes: Array<Note>;
 };
 
-export type MessageData = {
-  type: string;
-  data: Object;
-};
+export type JoinMessage = { type: "join"; data: { sheetId: string } };
+export type LeaveMessage = { type: "leave"; data: { sheetId: string } };
+export type UpdateMessage = { type: "update"; data: { sheetId: string; update: unknown } };
 
-// add enum for switch
+export type MessageData = JoinMessage | LeaveMessage | UpdateMessage;
