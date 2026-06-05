@@ -1,4 +1,4 @@
-import { createServer } from "http";
+import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import {
   JoinMessage,
@@ -6,23 +6,19 @@ import {
   UpdateMessage,
   MessageData,
 } from "./types.js";
-import { db } from "./db.js";
+import type { Database } from "./db.js";
 
 type AugmentedSocket = WebSocket & { isAlive?: boolean };
 
 export default class WebSocketHandler {
-  private port: number;
-  private server: ReturnType<typeof createServer>;
   private wss: WebSocketServer;
   private interval: ReturnType<typeof setInterval> | null = null;
   private rooms: Map<string, Set<AugmentedSocket>> = new Map();
-  private db: db;
+  private db: Database;
 
-  constructor(port: number) {
-    this.port = port;
-    this.server = createServer();
-    this.wss = new WebSocketServer({ server: this.server });
-    this.db = new db();
+  constructor(server: Server, db: Database) {
+    this.wss = new WebSocketServer({ server });
+    this.db = db;
   }
 
   private sendError(ws: AugmentedSocket, message: string) {
@@ -89,8 +85,11 @@ export default class WebSocketHandler {
     }
 
     if (
-      this.broadcastToRoom(data.sheetId, JSON.stringify({ type: "data", data: data.update }), ws) ===
-      false
+      this.broadcastToRoom(
+        data.sheetId,
+        JSON.stringify({ type: "data", data: data.update }),
+        ws,
+      ) === false
     ) {
       this.sendError(ws, "Unable to update");
       return;
@@ -121,10 +120,6 @@ export default class WebSocketHandler {
         ws.ping();
       });
     }, 60000);
-
-    this.server.listen(this.port, () => {
-      console.log(`Websocket Server is listening on port ${this.port}`);
-    });
   }
 
   stop() {

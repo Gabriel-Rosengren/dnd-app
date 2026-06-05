@@ -1,4 +1,11 @@
-export class db {
+export interface Database {
+  getAll(): unknown[];
+  get(id: string): unknown | false;
+  update(id: string, data: unknown): unknown | false;
+  deleted(id: string): boolean;
+}
+
+export class memoryDb implements Database {
   private characters: Array<Object>;
 
   constructor() {
@@ -27,6 +34,10 @@ export class db {
 
     this.characters[index] = char;
     return true;
+  }
+
+  public getAll() {
+    return this.characters;
   }
 
   public get(id: string) {

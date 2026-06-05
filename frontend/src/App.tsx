@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 function App() {
   const [character, setCharacter] = useState<CharacterData>();
-  const [hitpoints, setHitPoints] = useState();
-  const [name, setName] = useState();
 
   const [connected, setConnected] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
