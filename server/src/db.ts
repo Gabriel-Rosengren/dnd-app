@@ -13,6 +13,11 @@ export class db {
         name: "Formik 'Spores' Doeger Rowynn Piddock Yddae",
         hitPoints: { current: 20 },
       },
+      {
+        id: "3",
+        name: "Jacob Moss",
+        hitPoints: { current: 20 },
+      },
     ];
   }
 
