@@ -79,7 +79,9 @@ export type Character = {
   savingThrows: Record<Ability, boolean>;
 
   skills: Record<SkillName, number>;
-  skillProficiencies: Partial<Record<SkillName, "proficient" | "expertise" | "none">>;
+  skillProficiencies: Partial<
+    Record<SkillName, "proficient" | "expertise" | "none">
+  >;
   passivePerception: number;
 
   hitPoints: {
@@ -143,6 +145,9 @@ export type Character = {
 
 export type JoinMessage = { type: "join"; data: { sheetId: string } };
 export type LeaveMessage = { type: "leave"; data: { sheetId: string } };
-export type UpdateMessage = { type: "update"; data: { sheetId: string; update: unknown } };
+export type UpdateMessage = {
+  type: "update";
+  data: { sheetId: string; update: unknown };
+};
 
 export type MessageData = JoinMessage | LeaveMessage | UpdateMessage;

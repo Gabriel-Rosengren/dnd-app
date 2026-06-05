@@ -1,15 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 function App() {
   const [character, setCharacter] = useState<CharacterData>();
-  const [hitpoints, setHitPoints] = useState();
-  const [name, setName] = useState();
 
   const [connected, setConnected] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
 
-  const websocket_url = "ws://localhost:8080";
+  const websocket_url = "ws://2.67.6.132:8080";
 
   type CharacterData = {
     id: string;
@@ -100,6 +98,13 @@ function App() {
         }}
       >
         Formik
+      </button>
+      <button
+        onClick={() => {
+          getSheet("3");
+        }}
+      >
+        Jacob
       </button>
       <p>Connected: {`${connected}`}</p>
 
