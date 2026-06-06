@@ -1,11 +1,11 @@
 import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import {
+import type {
   JoinMessage,
   LeaveMessage,
   UpdateMessage,
   MessageData,
-} from "./types.js";
+} from "@dnd/shared";
 import type { Database } from "./db.js";
 
 type AugmentedSocket = WebSocket & { isAlive?: boolean };

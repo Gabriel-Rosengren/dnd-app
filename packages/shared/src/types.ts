@@ -1,13 +1,3 @@
-export type Note = {
-  id: string;
-  type: "character" | "world";
-  title: string;
-  content: string;
-  tags: Array<string>;
-  createdAt: string;
-  updatedAt: string;
-};
-
 export type Ability = "STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA";
 
 export type SkillName =
@@ -29,6 +19,16 @@ export type SkillName =
   | "sleightOfHand"
   | "stealth"
   | "survival";
+
+export type Note = {
+  id: string;
+  type: "character" | "world";
+  title: string;
+  content: string;
+  tags: Array<string>;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type Attack = {
   name: string;
@@ -79,23 +79,14 @@ export type Character = {
   savingThrows: Record<Ability, boolean>;
 
   skills: Record<SkillName, number>;
-  skillProficiencies: Partial<
-    Record<SkillName, "proficient" | "expertise" | "none">
-  >;
+  skillProficiencies: Partial<Record<SkillName, "proficient" | "expertise" | "none">>;
   passivePerception: number;
 
-  hitPoints: {
-    current: number;
-    max: number;
-    temporary: number;
-  };
+  hitPoints: { current: number; max: number; temporary: number };
   hitDice: string;
   currentHitDice: number;
   maxHitDice: number;
-  deathSaves: {
-    successes: number;
-    failures: number;
-  };
+  deathSaves: { successes: number; failures: number };
 
   armorClass: number;
   initiative: number;
@@ -143,11 +134,14 @@ export type Character = {
   notes: Array<Note>;
 };
 
-export type JoinMessage = { type: "join"; data: { sheetId: string } };
-export type LeaveMessage = { type: "leave"; data: { sheetId: string } };
-export type UpdateMessage = {
-  type: "update";
-  data: { sheetId: string; update: unknown };
+/** Slim character view used by the frontend */
+export type CharacterData = {
+  id: string;
+  name: string;
+  hitPoints: { current: number };
 };
 
+export type JoinMessage = { type: "join"; data: { sheetId: string } };
+export type LeaveMessage = { type: "leave"; data: { sheetId: string } };
+export type UpdateMessage = { type: "update"; data: { sheetId: string; update: unknown } };
 export type MessageData = JoinMessage | LeaveMessage | UpdateMessage;
