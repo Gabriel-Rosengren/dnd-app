@@ -1,10 +1,18 @@
-import { Routes, Route } from "react-router-dom";
-import { SheetPage } from "./routes/SheetPage.js";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { Layout } from "./components/Layout";
+import { HomePage } from "./routes/HomePage";
+import { SheetPage } from "./routes/SheetPage";
+import { PartyPage } from "./routes/PartyPage";
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<SheetPage />} />
+      <Route element={<Layout />}>
+        <Route index element={<HomePage />} />
+        <Route path="sheets/:sheetId" element={<SheetPage />} />
+        <Route path="party" element={<PartyPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
     </Routes>
   );
 }

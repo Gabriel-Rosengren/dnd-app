@@ -3,7 +3,8 @@
     "@dnd/shared": "^0.0.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -14,8 +15,9 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "npx tsx watch src/server.ts"
+    "build": "tsc --noEmit",
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
+    "test": "node --import tsx --test test/*.test.ts"
   }
 }

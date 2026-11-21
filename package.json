@@ -1,10 +1,16 @@
 {
   "name": "dnd",
   "private": true,
-  "workspaces": ["server", "frontend", "packages/shared"],
+  "workspaces": [
+    "server",
+    "frontend",
+    "packages/shared"
+  ],
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w frontend\"",
-    "build": "npm run build -w server && npm run build -w frontend"
+    "build": "npm run build -w server && npm run build -w frontend",
+    "test": "npm test -w server",
+    "lint": "npm run lint -w frontend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

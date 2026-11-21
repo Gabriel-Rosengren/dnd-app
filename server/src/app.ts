@@ -1,27 +1,23 @@
 import express from "express";
 import cors from "cors";
-import type { Database } from "./db.js";
+import type { SheetStore } from "./db.js";
 import { sendErrorResponse } from "./utils/responses.js";
+import { createSheetRouter } from "./routes/sheets.js";
 
-import { sheetRouter } from "./routes/sheets.js";
-
-export default function createApp(database: Database) {
+export default function createApp(store: SheetStore) {
   const app = express();
 
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: "1mb" }));
 
-  // Patchwork solution for passing db connection down to routers
-  app.use((req: any, res, next) => {
-    req.db = database;
-
-    next();
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true });
   });
 
-  app.use(sheetRouter);
+  app.use(createSheetRouter(store));
 
   app.use((req, res) => {
-    sendErrorResponse(req, res, 404, "Sheet Not Found");
+    sendErrorResponse(req, res, 404, "Not found");
   });
 
   return app;

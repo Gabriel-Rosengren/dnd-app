@@ -1,28 +1,36 @@
 # API Documentation
 
-Base URL: `http://localhost:8080`
+Base URL: `http://localhost:8080` (in development the frontend proxies `/api` and `/ws`).
+
+All REST changes are broadcast to WebSocket clients viewing the affected sheet.
 
 ---
 
 ## REST — Sheets
 
-All CRUD operations for character sheets.
-
-### List all sheets
+### List sheets
 
 ```
-GET /api/sheets
+GET /api/sheets          → SheetSummary[]
+GET /api/sheets?full=1   → Character[]
 ```
 
-**Response `200`**
-```json
-[
-  { "id": "1", "name": "Tink Fiddleton", "hitPoints": { "current": 20 } },
-  { "id": "2", "name": "Formik 'Spores' Doeger Rowynn Piddock Yddae", "hitPoints": { "current": 20 } }
-]
+`SheetSummary`:
+
+```ts
+{ id, name, playerName, race, classLabel, level, hitPoints, armorClass, passivePerception,
+  initiative, speed, inspiration, conditions, deathSaves, spellSaveDC?, updatedAt }
 ```
 
----
+### Create a sheet
+
+```
+POST /api/sheets
+```
+
+Body: optional partial `Character`. Missing fields get defaults and the server assigns the `id`.
+
+**`201`**: the new `Character`.
 
 ### Get a sheet
 
@@ -30,42 +38,31 @@ GET /api/sheets
 GET /api/sheets/:id
 ```
 
-**Response `200`**
+**`200`**: `Character` · **`404`**: `{ "error": "Sheet not found" }`
+
+### Patch a sheet
+
+```
+PATCH /api/sheets/:id
+```
+
+Body: partial `Character`. Objects are merged deeply and arrays replace. `id` is ignored.
+
 ```json
-{ "id": "1", "name": "Tink Fiddleton", "hitPoints": { "current": 20 } }
+{ "hitPoints": { "current": 18 }, "conditions": ["Poisoned"] }
 ```
 
-**Response `404`**
-```json
-{ "error": "Sheet not found" }
-```
+**`200`**: the updated `Character` · **`400`** body not an object · **`404`**
 
----
-
-### Upsert a sheet
-
-Replaces the entire sheet at `:id` with the request body.
+### Replace a sheet
 
 ```
-POST /api/sheets/:id
+PUT /api/sheets/:id
 ```
 
-**Request body** — full or partial `Character` object
-```json
-{ "name": "Tink Fiddleton", "hitPoints": { "current": 18 } }
-```
+Body: a full `Character`. Missing fields reset to defaults.
 
-**Response `200`** — the saved object as returned by the database
-```json
-{ "id": "1", "name": "Tink Fiddleton", "hitPoints": { "current": 18 } }
-```
-
-**Response `404`**
-```json
-{ "error": "Sheet not found" }
-```
-
----
+**`200`**: `Character` · **`400`** · **`404`**
 
 ### Delete a sheet
 
@@ -73,162 +70,116 @@ POST /api/sheets/:id
 DELETE /api/sheets/:id
 ```
 
-**Response `204`** — no body
+**`204`** · **`404`**
 
-**Response `404`**
-```json
-{ "error": "Sheet not found" }
+### Health
+
 ```
-
----
-
-### Catch-all
-
-Any unmatched route returns:
-
-**Response `404`**
-```
-Not Found
+GET /api/health → { "ok": true }
 ```
 
 ---
 
 ## WebSocket — Real-time sync
 
-Connect to the WebSocket server at `ws://localhost:8080`.
+Connect to `ws://localhost:8080` (any path, e.g. `/ws`). Every message is `{ "type": string, "data": object }`.
 
-All messages follow the shape:
+Unknown or malformed messages get an `error` reply.
 
-```ts
-{ "type": string, "data": object }
+### On connect
+
+The server sends `welcome`. The identity defaults to `Anonymous` / `player`.
+
+```json
+{ "type": "welcome", "data": { "you": { "id": "a1b2c3d4", "name": "Anonymous", "role": "player" } } }
 ```
 
----
+### `hello`: identify
 
-### Join a sheet room
+```json
+{ "type": "hello", "data": { "name": "Dana", "role": "dm" } }
+```
 
-Subscribe to receive updates for a specific sheet.
+The reply is `welcome`. Presence is re-broadcast to every room you're in.
+
+### `join` / `leave`
 
 ```json
 { "type": "join", "data": { "sheetId": "1" } }
 ```
 
-**Reply `data`** — the full current sheet state
+The reply is a `sheet` snapshot (no `by`). A `presence` message then goes to everyone in the room. Unknown sheets get `error` with the `sheetId`.
+
+`leave` has no reply; the server sends updated `presence` to the room.
+
+### `update`: merge a partial update
+
 ```json
-{ "type": "data", "data": { "id": "1", "name": "Tink Fiddleton", "hitPoints": { "current": 20 } } }
+{ "type": "update", "data": { "sheetId": "1", "patch": { "hitPoints": { "current": 18 } }, "seq": 42 } }
 ```
 
----
-
-### Leave a sheet room
-
-Unsubscribe from a sheet room.
+Every client in the room receives:
 
 ```json
-{ "type": "leave", "data": { "sheetId": "1" } }
+{ "type": "sheet", "data": {
+  "sheet": { "...full Character..." },
+  "by": { "id": "a1b2c3d4", "name": "Pat", "role": "player" },
+  "changed": ["hitPoints"]
+} }
 ```
 
-No reply.
+The author's copy also includes `"ack": 42`. Clients use it to drop confirmed optimistic edits. Authors who haven't joined the room (e.g. the DM party screen) still get their ack.
 
----
-
-### Update a sheet
-
-Send changes to the server. The server persists the update and broadcasts it to all other clients in the room.
+### `adjustHp`: damage or heal
 
 ```json
-{ "type": "update", "data": { "sheetId": "1", "update": { "id": "1", "name": "Tink Fiddleton", "hitPoints": { "current": 18 } } } }
+{ "type": "adjustHp", "data": { "sheetId": "1", "amount": -7, "seq": 43 } }
 ```
 
-**Broadcast to room** — sent to all other clients in the room
+Negative amounts deal damage and temporary HP absorbs it first. Positive amounts heal up to max; healing from 0 resets death saves. The result is broadcast as a `sheet` message.
+
+### `rest`
+
 ```json
-{ "type": "data", "data": { "id": "1", "name": "Tink Fiddleton", "hitPoints": { "current": 18 } } }
+{ "type": "rest", "data": { "sheetId": "1", "kind": "long", "seq": 44 } }
 ```
 
-**Reply to sender**
+- **Short rest:** restores `shortRest` resources.
+- **Long rest:** also restores HP, clears temp HP and death saves, restores spell slots and `longRest` resources, and recovers half your hit dice.
+
+### `watchList`: live sheet list
+
 ```json
-{ "type": "info", "data": { "message": "Ok" } }
+{ "type": "watchList", "data": { "watch": true } }
 ```
 
----
-
-### Error
+The server replies with `sheetList`, then sends it again whenever a summary changes (create, delete, or an edit to a summarised field).
 
 ```json
-{ "type": "error", "data": { "message": "Invalid JSON" } }
+{ "type": "sheetList", "data": { "sheets": [ "...SheetSummary..." ] } }
+```
+
+### Other server messages
+
+```json
+{ "type": "presence", "data": { "sheetId": "1", "participants": [{ "id": "…", "name": "Dana", "role": "dm" }] } }
+{ "type": "deleted",  "data": { "sheetId": "1" } }
+{ "type": "error",    "data": { "message": "Sheet not found", "sheetId": "1", "ack": 43 } }
 ```
 
 ---
 
 ## Data model — `Character`
 
-```ts
-{
-  id: string;
-  name: string;
-  playerName: string;
-  classes: Array<{ name: string; level: number; subclass?: string }>;
-  level: number;
-  background: string;
-  race: string;
-  subrace?: string;
-  alignment: string;
-  experiencePoints: number;
-  inspiration: boolean;
+See [`packages/shared/src/types.ts`](../packages/shared/src/types.ts) for the full type.
 
-  abilityScores: Record<"STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA", number>;
-  proficiencyBonus: number;
-  savingThrows: Record<"STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA", boolean>;
+Fields marked *derived* are recomputed by the server on every change, and any value a client sends for them is overwritten:
 
-  skills: Record<SkillName, number>;
-  skillProficiencies: Partial<Record<SkillName, "proficient" | "expertise" | "none">>;
-  passivePerception: number;
+- `level`: sum of class levels
+- `proficiencyBonus`
+- `skills`: total bonus per skill
+- `passivePerception`
+- `maxHitDice`
+- `spellSaveDC` and `spellAttackBonus`, when `spellcastingAbility` is set
 
-  hitPoints: { current: number; max: number; temporary: number };
-  hitDice: string;
-  currentHitDice: number;
-  maxHitDice: number;
-  deathSaves: { successes: number; failures: number };
-
-  armorClass: number;
-  initiative: number;
-  speed: number;
-  attacks: Array<{ name: string; attackBonus: number; damage: string; damageType: string; notes?: string }>;
-
-  spellcastingAbility?: string;
-  spellSaveDC?: number;
-  spellAttackBonus?: number;
-  spellSlots: Record<number, { total: number; used: number }>;
-  spells: Array<{ name: string; level: number; prepared: boolean; school?: string; components?: string; concentration?: boolean; ritual?: boolean }>;
-
-  cp: number; sp: number; ep: number; gp: number; pp: number;
-  equipment: Array<{ name: string; quantity: number; notes?: string }>;
-
-  personalityTraits: string;
-  ideals: string;
-  bonds: string;
-  flaws: string;
-  classResources: Array<{ name: string; current: number; max: number; renewal: "shortRest" | "longRest" | "dawn" | "special" }>;
-  features: Array<{ name: string; description: string; source?: string }>;
-  feats: Array<string>;
-
-  languages: Array<string>;
-  armorProficiencies: Array<string>;
-  weaponProficiencies: Array<string>;
-  toolProficiencies: Array<string>;
-
-  age: number;
-  height: string;
-  weight: string;
-  eyes: string;
-  skin: string;
-  hair: string;
-
-  backstory: string;
-  allies: Array<{ name: string; description: string }>;
-  treasure: string;
-
-  campaigns: Array<string>;
-  notes: Array<{ id: string; type: "character" | "world"; title: string; content: string; tags: Array<string>; createdAt: string; updatedAt: string }>;
-}
-```
+Values with the wrong type (e.g. `"armorClass": "high"`) are dropped rather than stored.

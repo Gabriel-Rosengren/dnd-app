@@ -1,5 +1,13 @@
-type Props = { connected: boolean };
+import { useConnection } from "../lib/hooks";
 
-export function ConnectionStatus({ connected }: Props) {
-  return <p>Connected: {`${connected}`}</p>;
+const LABELS = { open: "Live", connecting: "Connecting…", closed: "Offline – reconnecting" };
+
+export function ConnectionStatus() {
+  const state = useConnection();
+  return (
+    <span className={`conn conn-${state}`} role="status">
+      <span className="conn-dot" aria-hidden />
+      {LABELS[state]}
+    </span>
+  );
 }

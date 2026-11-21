@@ -1,3 +1,4 @@
 .env
 /server/dist
 node_modules
+/server/data

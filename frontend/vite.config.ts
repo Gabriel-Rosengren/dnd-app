@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const target = process.env.SERVER_URL ?? "http://localhost:8080";
+
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
@@ -8,5 +10,17 @@ export default defineConfig({
   },
   ssr: {
     noExternal: ["@dnd/shared"],
+  },
+  server: {
+    proxy: {
+      "/api": target,
+      "/ws": { target: target.replace(/^http/, "ws"), ws: true },
+    },
+  },
+  preview: {
+    proxy: {
+      "/api": target,
+      "/ws": { target: target.replace(/^http/, "ws"), ws: true },
+    },
   },
 });
